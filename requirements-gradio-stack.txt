@@ -1,0 +1,7 @@
+# Gradio 3.48 breaks with modern FastAPI/Starlette (Jinja2 "unhashable type: dict").
+fastapi==0.103.2
+starlette==0.27.0
+uvicorn[standard]==0.23.2
+jinja2==3.1.4
+markupsafe==2.1.5
+pydantic==2.5.3

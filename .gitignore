@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+data/tmp/
+data/out/
+vendor/OpenVoice/checkpoints/
+vendor/OpenVoice/processed/
+vendor/OpenVoice/outputs/
+*.zip
+.DS_Store
