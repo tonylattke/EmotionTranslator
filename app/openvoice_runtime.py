@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import torch
 
 from app.config import CHECKPOINTS_DIR, DEVICE, assert_checkpoints
-from app.styles import tts_language_label
 
 _lock = threading.Lock()
 _runtime: "OpenVoiceRuntime | None" = None
@@ -20,10 +19,7 @@ class OpenVoiceRuntime:
     converter: object
 
     def base_tts(self, language: str):
-        label = tts_language_label(language)
-        if label == "Chinese":
-            return self.base_zh
-        return self.base_en
+        return self.base_zh if language == "zh" else self.base_en
 
 
 def _resolve_device(requested: str) -> str:

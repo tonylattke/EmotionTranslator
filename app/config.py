@@ -17,9 +17,10 @@ CHECKPOINTS_DIR = Path(
 DATA_TMP = _ROOT / "data" / "tmp"
 DATA_OUT = _ROOT / "data" / "out"
 PROCESSED_DIR = OPENVOICE_ROOT / "processed"
+PIPER_VOICES_DIR = Path(os.environ.get("PIPER_VOICES_DIR", _ROOT / "models" / "piper")).resolve()
 
 DEVICE = os.environ.get("DEVICE", "cuda:0")
-WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "base")
+WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "small")
 
 GRADIO_SERVER_NAME = os.environ.get("GRADIO_SERVER_NAME", "127.0.0.1")
 GRADIO_SERVER_PORT = int(os.environ.get("GRADIO_SERVER_PORT", "7860"))

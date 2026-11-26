@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import traceback
 
 import gradio as gr
 
@@ -10,36 +11,48 @@ from app.config import (
     assert_checkpoints,
     ensure_dirs,
 )
+from app.languages import INPUT_LANGUAGE_CHOICES, OUTPUT_LANGUAGE_CHOICES, to_code
 from app.openvoice_runtime import get_runtime
 from app.pipeline import restyle_audio
 from app.styles import DEFAULT_TARGET_EMOTION, EN_EMOTION_STYLES
 
+INPUT_LABELS = [label for label, _ in INPUT_LANGUAGE_CHOICES]
+OUTPUT_LABELS = [label for label, _ in OUTPUT_LANGUAGE_CHOICES]
+
 
 def _on_submit(
+    active_source,
     audio_upload,
     audio_mic,
     target_emotion,
     keep_timbre,
-    language_override,
+    input_language,
+    output_language,
     speed,
     tau,
     transcript_override,
 ):
-    audio = audio_upload or audio_mic
+    if active_source == "microphone":
+        audio = audio_mic or audio_upload
+    else:
+        audio = audio_upload or audio_mic
     if audio is None:
         raise gr.Error("Please record or upload audio first.")
-    lo = (language_override or "Auto").strip()
-    lang = None if lo in ("", "Auto") else lo
-    result = restyle_audio(
-        audio,
-        target_emotion=target_emotion,
-        keep_timbre=keep_timbre,
-        language_override=lang,
-        speed=speed,
-        tau=tau,
-        transcript_override=transcript_override,
-    )
-    return result.output_path, result.transcript, result.log
+    try:
+        result = restyle_audio(
+            audio,
+            target_emotion=target_emotion,
+            keep_timbre=keep_timbre,
+            input_language=to_code(input_language),
+            output_language=to_code(output_language),
+            speed=speed,
+            tau=tau,
+            transcript_override=transcript_override,
+        )
+    except Exception as exc:
+        traceback.print_exc()
+        raise gr.Error(f"{type(exc).__name__}: {exc}") from exc
+    return result.output_path, result.transcript, result.output_text, result.log
 
 
 def build_ui() -> gr.Blocks:
@@ -47,28 +60,36 @@ def build_ui() -> gr.Blocks:
         gr.Markdown(
             """
             # EmotionTranslator
-            Upload or record speech, then re-synthesize it in a **target emotion**
-            (OpenVoice V1). Optionally keep the original speaker timbre.
+            Upload or record speech, then re-synthesize it in a **target emotion** and
+            **output language** (English, Español, Deutsch, 中文). Optionally keep the
+            original speaker timbre.
             """
         )
+        active_source = gr.State("upload")
         with gr.Tabs():
-            with gr.TabItem("Upload"):
+            with gr.Tab("Upload") as upload_tab:
                 audio_upload = gr.Audio(label="Audio file", source="upload", type="filepath")
-            with gr.TabItem("Microphone"):
+            with gr.Tab("Microphone") as mic_tab:
                 audio_mic = gr.Audio(label="Microphone", source="microphone", type="filepath")
+                gr.Markdown(
+                    "Click **Record from microphone**, speak, then **Stop recording** and wait "
+                    "until the player appears before translating."
+                )
+        upload_tab.select(lambda: "upload", None, active_source)
+        mic_tab.select(lambda: "microphone", None, active_source)
+
         with gr.Row():
+            input_language = gr.Dropdown(choices=INPUT_LABELS, value="Auto", label="Input language")
+            output_language = gr.Dropdown(
+                choices=OUTPUT_LABELS, value="Same as input", label="Output language"
+            )
             target_emotion = gr.Dropdown(
                 choices=list(EN_EMOTION_STYLES),
                 value=DEFAULT_TARGET_EMOTION,
                 label="Target emotion",
             )
-            language_override = gr.Dropdown(
-                choices=["Auto", "English", "Chinese"],
-                value="Auto",
-                label="TTS language",
-            )
-            keep_timbre = gr.Checkbox(value=True, label="Keep speaker timbre from input")
         with gr.Row():
+            keep_timbre = gr.Checkbox(value=True, label="Keep speaker timbre from input")
             speed = gr.Slider(0.7, 1.3, value=1.0, step=0.05, label="Speech speed")
             tau = gr.Slider(0.1, 0.9, value=0.3, step=0.05, label="Timbre strength (tau)")
         transcript_override = gr.Textbox(
@@ -78,22 +99,26 @@ def build_ui() -> gr.Blocks:
         )
         run_btn = gr.Button("Translate emotion", variant="primary")
         audio_out = gr.Audio(label="Output", type="filepath")
-        transcript_out = gr.Textbox(label="Transcript used", lines=3)
-        log_out = gr.Textbox(label="Log", lines=6)
+        with gr.Row():
+            transcript_out = gr.Textbox(label="Recognized text", lines=3)
+            output_text = gr.Textbox(label="Spoken text (output language)", lines=3)
+        log_out = gr.Textbox(label="Log", lines=8)
 
         run_btn.click(
             fn=_on_submit,
             inputs=[
+                active_source,
                 audio_upload,
                 audio_mic,
                 target_emotion,
                 keep_timbre,
-                language_override,
+                input_language,
+                output_language,
                 speed,
                 tau,
                 transcript_override,
             ],
-            outputs=[audio_out, transcript_out, log_out],
+            outputs=[audio_out, transcript_out, output_text, log_out],
         )
     return demo
 

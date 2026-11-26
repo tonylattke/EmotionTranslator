@@ -19,29 +19,18 @@ EN_EMOTION_STYLES = (
 DEFAULT_TARGET_EMOTION = "friendly"
 
 
-def en_checkpoint_base() -> Path:
-    return CHECKPOINTS_DIR / "base_speakers" / "EN"
-
-
-def zh_checkpoint_base() -> Path:
-    return CHECKPOINTS_DIR / "base_speakers" / "ZH"
+def openvoice_base_dir(language: str) -> Path:
+    return CHECKPOINTS_DIR / "base_speakers" / ("ZH" if language == "zh" else "EN")
 
 
 def source_se_path(language: str, speaker: str) -> Path:
-    lang = language.lower()
-    if lang in ("chinese", "zh"):
-        base = zh_checkpoint_base()
-        if speaker == "default":
-            return base / "zh_default_se.pth"
-        return base / "zh_style_se.pth"
-    base = en_checkpoint_base()
+    """Precomputed tone embedding of the OpenVoice base speaker that produced the TTS audio."""
+    base = openvoice_base_dir(language)
+    prefix = "zh" if language == "zh" else "en"
     if speaker == "default":
-        return base / "en_default_se.pth"
-    return base / "en_style_se.pth"
+        return base / f"{prefix}_default_se.pth"
+    return base / f"{prefix}_style_se.pth"
 
 
-def tts_language_label(language: str) -> str:
-    lang = language.lower()
-    if lang in ("chinese", "zh", "mandarin"):
-        return "Chinese"
-    return "English"
+def openvoice_language_name(language: str) -> str:
+    return "Chinese" if language == "zh" else "English"

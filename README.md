@@ -39,13 +39,26 @@ pip install -r requirements-gradio-stack.txt
 ./run.sh
 ```
 
+### Microphone
+
+Click **Record from microphone**, speak, click **Stop recording**, and wait for the player to appear before pressing **Translate emotion**. The browser only allows the microphone on `http://127.0.0.1` / `localhost` or HTTPS, so open the app through one of those (not through the machine's LAN IP).
+
 ## How it works
 
-1. Whisper (`faster-whisper`) transcribes input audio.
-2. OpenVoice `BaseSpeakerTTS` generates speech in the chosen emotion style.
-3. If “Keep speaker timbre” is enabled, `ToneColorConverter` clones timbre from your input clip.
+1. Whisper (`faster-whisper`) transcribes the input and detects the language (or uses the one you pick).
+2. If the output language differs, the text is translated locally with [Helsinki-NLP MarianMT](https://huggingface.co/Helsinki-NLP) models (downloaded on first use, ~300 MB per language pair).
+3. Speech is generated in the target emotion and language:
 
-Emotion is controlled by the TTS **style**, not by editing the original waveform.
+| Output | TTS | Emotion |
+|--------|-----|---------|
+| English | OpenVoice V1 | Native styles (friendly, cheerful, angry, ...) |
+| Deutsch | Piper `thorsten_emotional` | Native speakers (amused, angry, sleepy, whisper, ...) mapped from the emotion list |
+| Español | Piper `davefx` | Approximated with speed, pitch and expressiveness |
+| 中文 | OpenVoice V1 | Default style only |
+
+4. If “Keep speaker timbre” is enabled, OpenVoice's `ToneColorConverter` gives the output your voice. Clips shorter than ~5 s use the whole recording as reference.
+
+Emotion is controlled by the TTS **style**, not by editing the original waveform. To have every translation model available offline, run `PRELOAD_TRANSLATION_MODELS=1 ./build.sh`.
 
 ## Configuration
 
@@ -54,7 +67,8 @@ Copy `.env.example` to `.env` (done automatically by `build.sh`):
 | Variable | Default |
 |----------|---------|
 | `DEVICE` | `cuda:0` |
-| `WHISPER_MODEL` | `base` (use `small` or `medium` for better ASR) |
+| `WHISPER_MODEL` | `small` (`medium` recognizes Spanish/German better but is slower) |
+| `PIPER_VOICES_DIR` | `models/piper` |
 | `GRADIO_SERVER_NAME` | `127.0.0.1` |
 | `GRADIO_SERVER_PORT` | `7860` |
 

@@ -146,12 +146,44 @@ if [[ ! -f "$CHECKPOINT_MARKER" ]]; then
   rm -f "$CKPT_ZIP"
 fi
 
+echo "==> Downloading Piper voices (Español, Deutsch)"
+PIPER_DIR="$ROOT/models/piper"
+PIPER_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main"
+PIPER_VOICES=(
+  "es/es_ES/davefx/medium/es_ES-davefx-medium"
+  "de/de_DE/thorsten_emotional/medium/de_DE-thorsten_emotional-medium"
+)
+mkdir -p "$PIPER_DIR"
+for voice in "${PIPER_VOICES[@]}"; do
+  name="$(basename "$voice")"
+  for ext in .onnx .onnx.json; do
+    if [[ ! -s "$PIPER_DIR/$name$ext" ]]; then
+      curl -fL --retry 3 --retry-delay 5 -o "$PIPER_DIR/$name$ext" "$PIPER_BASE/$voice$ext?download=true"
+    fi
+  done
+done
+
+if [[ "${PRELOAD_TRANSLATION_MODELS:-0}" == "1" ]]; then
+  echo "==> Pre-downloading translation models (~300MB each)"
+  python - <<'PY'
+from transformers import MarianMTModel, MarianTokenizer
+for pair in ["en-es", "es-en", "en-de", "de-en", "es-de", "de-es", "en-zh", "zh-en"]:
+    name = f"Helsinki-NLP/opus-mt-{pair}"
+    MarianTokenizer.from_pretrained(name)
+    MarianMTModel.from_pretrained(name)
+    print("cached", name)
+PY
+fi
+
 if [[ ! -f "$ROOT/.env" ]]; then
   cp "$ROOT/.env.example" "$ROOT/.env"
 fi
 
 echo "==> Verifying imports and checkpoints"
-python -c "import torch; import openvoice; import gradio; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
+python -c "import torch, openvoice, gradio, piper, transformers; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
 test -f "$CHECKPOINT_MARKER"
+for voice in "${PIPER_VOICES[@]}"; do
+  test -s "$PIPER_DIR/$(basename "$voice").onnx"
+done
 
 echo "==> Build complete. Run: ./run.sh  (or ./run:.sh)"

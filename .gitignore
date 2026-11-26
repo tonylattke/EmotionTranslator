@@ -8,4 +8,5 @@ vendor/OpenVoice/checkpoints/
 vendor/OpenVoice/processed/
 vendor/OpenVoice/outputs/
 *.zip
+models/
 .DS_Store
