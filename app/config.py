@@ -8,6 +8,17 @@ from dotenv import load_dotenv
 _ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(_ROOT / ".env")
 
+# Portable ffmpeg downloaded by the Windows setup; pydub and whisper_timestamped call it by name.
+_LOCAL_FFMPEG = _ROOT / "tools" / "ffmpeg" / "bin"
+if _LOCAL_FFMPEG.is_dir():
+    os.environ["PATH"] = str(_LOCAL_FFMPEG) + os.pathsep + os.environ.get("PATH", "")
+
+# Gradio checks http://127.0.0.1 at startup; a corporate proxy must not intercept it.
+for _var in ("NO_PROXY", "no_proxy"):
+    _hosts = [h for h in os.environ.get(_var, "").split(",") if h]
+    os.environ[_var] = ",".join(dict.fromkeys(["127.0.0.1", "localhost", *_hosts]))
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
 OPENVOICE_ROOT = Path(
     os.environ.get("OPENVOICE_ROOT", _ROOT / "vendor" / "OpenVoice")
 ).resolve()
@@ -37,9 +48,9 @@ def assert_checkpoints() -> None:
     converter_ckpt = CHECKPOINTS_DIR / "converter" / "checkpoint.pth"
     if not en_ckpt.is_file():
         raise FileNotFoundError(
-            f"Missing OpenVoice EN checkpoint at {en_ckpt}. Run ./build.sh to download models."
+            f"Missing OpenVoice EN checkpoint at {en_ckpt}. Run build.sh (Linux) or build.bat (Windows) to download models."
         )
     if not converter_ckpt.is_file():
         raise FileNotFoundError(
-            f"Missing OpenVoice converter at {converter_ckpt}. Run ./build.sh to download models."
+            f"Missing OpenVoice converter at {converter_ckpt}. Run build.sh (Linux) or build.bat (Windows) to download models."
         )

@@ -8,5 +8,8 @@ vendor/OpenVoice/checkpoints/
 vendor/OpenVoice/processed/
 vendor/OpenVoice/outputs/
 *.zip
+*.part
 models/
+tools/
+build.log
 .DS_Store

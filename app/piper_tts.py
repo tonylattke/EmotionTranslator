@@ -63,7 +63,7 @@ def voice_path(language: str) -> Path:
 def assert_voice(language: str) -> None:
     path = voice_path(language)
     if not path.is_file() or not path.with_suffix(".onnx.json").is_file():
-        raise FileNotFoundError(f"Missing Piper voice {path.name}. Run ./build.sh to download it.")
+        raise FileNotFoundError(f"Missing Piper voice {path.name}. Run build.sh (Linux) or build.bat (Windows) to download it.")
 
 
 def _get_voice(language: str):

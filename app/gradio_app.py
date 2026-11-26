@@ -3,14 +3,16 @@ from __future__ import annotations
 import argparse
 import traceback
 
-import gradio as gr
-
+# app.config must load before gradio: it puts the local ffmpeg on PATH, which pydub reads at import.
 from app.config import (
     GRADIO_SERVER_NAME,
     GRADIO_SERVER_PORT,
     assert_checkpoints,
     ensure_dirs,
 )
+
+import gradio as gr
+
 from app.languages import INPUT_LANGUAGE_CHOICES, OUTPUT_LANGUAGE_CHOICES, to_code
 from app.openvoice_runtime import get_runtime
 from app.pipeline import restyle_audio

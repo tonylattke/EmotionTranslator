@@ -6,38 +6,51 @@ Typical use: angry delivery → transcript → friendly/cheerful TTS → tone co
 
 ## Requirements
 
-- Linux with **NVIDIA GPU** (CUDA) recommended
-- **ffmpeg** (`sudo apt install ffmpeg`)
-- **git**, **curl** or **wget**, **unzip**
-- ~2 GB disk for Python packages + checkpoints
+- Linux or Windows 10/11 (64-bit)
+- **Python 3.9–3.12** (3.11 recommended; 3.13+ is not supported by PyTorch 2.5)
+- **NVIDIA GPU** with a recent driver recommended; without one everything runs on CPU (slower)
+- ~6 GB disk for Python packages and models
+- Linux only: **ffmpeg** (`sudo apt install ffmpeg`). On Windows the build downloads a portable ffmpeg into `tools/ffmpeg` if none is installed.
+- `git` is optional: without it, OpenVoice is downloaded as a zip.
 
 ## Quick start
 
+Linux:
+
 ```bash
-chmod +x build.sh run.sh "run:.sh"
 ./build.sh
 ./run.sh
 ```
 
-If `pip install` times out on `files.pythonhosted.org`, `build.sh` auto-uses the Sportradar dependency proxy when reachable. You can also set:
+Windows (double-click or from `cmd` / PowerShell in the project folder):
 
-```bash
-export PIP_INDEX_URL="https://cdproxy.sportradar.online/pypi/simple/"
-export PIP_TRUSTED_HOST="cdproxy.sportradar.online"
-./build.sh
+```bat
+build.bat
+run.bat
 ```
+
+If Python is missing on Windows: `winget install Python.Python.3.11`, then open a new terminal.
+
+Both build scripts run the same installer, [`scripts/setup_env.py`](scripts/setup_env.py). It is safe to re-run. It creates `.venv`, installs PyTorch (CUDA 12.1 wheels when `nvidia-smi` is found, CPU wheels otherwise), the app dependencies, the OpenVoice checkpoints and the Piper voices. Options (environment variables):
+
+| Variable | Effect |
+|----------|--------|
+| `TORCH_VARIANT=cpu` or `cu121` | Force the PyTorch build |
+| `PRELOAD_TRANSLATION_MODELS=1` | Download all translation models now, for fully offline use |
+| `PIP_INDEX_URL` | Custom pip index |
+
+If `pip install` times out on `files.pythonhosted.org`, the installer automatically uses the Sportradar dependency proxy when it is reachable.
 
 Open the URL printed in the terminal (default http://127.0.0.1:7860).
 
 ### UI won’t load (`TypeError: unhashable type: 'dict'`)
 
-Newer `fastapi` / `starlette` (pulled in by other packages) break Gradio 3.48. Re-pin the web stack:
+Newer `fastapi` / `starlette` (pulled in by other packages) break Gradio 3.48. Run the build again, which re-pins the web stack (`requirements-gradio-stack.txt`).
 
-```bash
-source .venv/bin/activate
-pip install -r requirements-gradio-stack.txt
-./run.sh
-```
+### Windows notes
+
+- `run.bat` starts Python in UTF-8 mode (`-X utf8`); OpenVoice prints phonetic symbols that crash the default Windows console encoding.
+- Whisper uses the CUDA libraries bundled with PyTorch. If they cannot be loaded, it falls back to CPU and prints a warning.
 
 ### Microphone
 
@@ -62,7 +75,7 @@ Emotion is controlled by the TTS **style**, not by editing the original waveform
 
 ## Configuration
 
-Copy `.env.example` to `.env` (done automatically by `build.sh`):
+Copy `.env.example` to `.env` (done automatically by `build.sh` / `build.bat`):
 
 | Variable | Default |
 |----------|---------|
@@ -81,6 +94,6 @@ Copy `.env.example` to `.env` (done automatically by `build.sh`):
 
 ## License & attribution
 
-OpenVoice is MIT-licensed. V1 checkpoints are downloaded by `build.sh` from the [camenduru Hugging Face mirror](https://huggingface.co/camenduru/OpenVoice) when the official MyShell S3 URL is unavailable. See upstream README for watermark details (`@MyShell`).
+OpenVoice is MIT-licensed. V1 checkpoints are downloaded by the build scripts from the [camenduru Hugging Face mirror](https://huggingface.co/camenduru/OpenVoice) when the official MyShell S3 URL is unavailable. See upstream README for watermark details (`@MyShell`).
 
 This project is not affiliated with MyShell.
